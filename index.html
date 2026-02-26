@@ -1,5 +1,182 @@
-// Fix for statistics update issue in the clearGame function
-function clearGame() {
-    // existing clear game logic...
-    updateStats("clear"); // added call to update stats
+<style>
+body{margin:0;font-family:sans-serif;background:#f4f6f9;text-align:center;}
+button{
+  padding:15px 0;       /* スタートと同じくらいの大きさ */
+  font-size:24px;       /* スタートと同じくらい */
+  width:60%;            /* スタートと同じくらいの幅 */
+  padding:15px 0;
+  font-size:24px;
+  width:60%;
+  margin:10px auto;
+  display:block;
+  border:none;
+@@ -20,18 +20,25 @@
 }
+button:hover{background:#357ae8;}
+#sizeSelect{
+  width:60%;            /* スタートと同じ幅 */
+  font-size:24px;       /* スタートと同じサイズ */
+  width:60%;
+  font-size:24px;
+  padding:10px;
+  margin:10px auto 20px auto;
+  display:block;
+  border-radius:10px;
+  border:1px solid #ccc;
+  text-align:center;
+}
+#board{display:grid;margin:10px auto;gap:4px;}
+.tile{aspect-ratio:1/1;background:linear-gradient(145deg,#6fb1fc,#4364f7);
+color:white;font-weight:bold;display:flex;justify-content:center;align-items:center;border-radius:10px;font-size:clamp(10px,2.5vw,28px);}
+#board{display:grid;margin:10px auto;gap:4px; touch-action: none;}
+.tile{
+  aspect-ratio:1/1;
+  background:linear-gradient(145deg,#6fb1fc,#4364f7);
+  color:white;font-weight:bold;display:flex;
+  justify-content:center;align-items:center;border-radius:10px;
+  font-size:clamp(10px,2.5vw,28px);
+  transition: transform 0.2s;
+}
+.tile.smooth{transition: transform 0.3s ease;}
+.empty{background:transparent;}
+.podium{display:flex;justify-content:center;align-items:flex-end;gap:10px;margin:10px 0;}
+.podiumItem{width:95px;padding:8px;border-radius:12px 12px 0 0;color:white;font-weight:bold;}
+@@ -87,13 +94,16 @@ <h3>🏆 ランキング</h3>
+<h1>詳細</h1>
+<button onclick="showDetail('stats')">統計</button>
+<button onclick="showDetail('ranking')">ランキング</button>
+<button onclick="showDetail('settings')">設定</button>
+<div id="detailContent"></div>
+<br>
+<button onclick="showScreen('homeScreen')">ホームに戻る</button>
+</div>
+
+<script>
+let size=4, board=[], emptyIndex, moveCount=0;
+let tileSmooth=true;
+let tileFontSize='medium';
+
+// 画面切り替え
+function showScreen(id){
+@@ -127,9 +137,39 @@ <h1>詳細</h1>
+      podium.appendChild(d);
+    });
+    content.appendChild(podium);
+  } else if(type==='settings'){
+    const div=document.createElement('div');
+    div.innerHTML=`
+      <h3>設定</h3>
+      <label>タイルの動きの滑らかさ:
+        <select id="smoothSelect" onchange="updateSmooth()">
+          <option value="true" ${tileSmooth?'selected':''}>滑らか</option>
+          <option value="false" ${!tileSmooth?'selected':''}>普通</option>
+        </select>
+      </label><br><br>
+      <label>タイルの数字サイズ:
+        <select id="fontSizeSelect" onchange="updateFontSize()">
+          <option value="small" ${tileFontSize==='small'?'selected':''}>小</option>
+          <option value="medium" ${tileFontSize==='medium'?'selected':''}>標準</option>
+          <option value="large" ${tileFontSize==='large'?'selected':''}>大</option>
+        </select>
+      </label>
+    `;
+    content.appendChild(div);
+  }
+}
+
+// 設定更新
+function updateSmooth(){
+  tileSmooth = document.getElementById('smoothSelect').value==='true';
+  render();
+}
+
+function updateFontSize(){
+  tileFontSize = document.getElementById('fontSizeSelect').value;
+  render();
+}
+
+// ゲーム開始
+function startGame(){
+  size=parseInt(document.getElementById('sizeSelect').value);
+@@ -148,6 +188,7 @@ <h1>詳細</h1>
+  moveCount=0;
+  moveCountDisplay();
+  render();
+  enableSwipe(); // スワイプ有効化
+  showScreen('gameScreen');
+  updateStats("play");
+  loadRanking();
+@@ -162,28 +203,54 @@ <h1>詳細</h1>
+  boardEl.style.width=maxSize+"px";
+  boardEl.style.height=maxSize+"px";
+
+  let fontMultiplier = tileFontSize==='small'?0.5: tileFontSize==='medium'?0.8 : 1.2;
+  const tileSize = maxSize/size;
+
+  board.forEach((n,i)=>{
+    const d=document.createElement("div");
+    d.className="tile";
+    if(n===null)d.classList.add("empty");
+    else{
+    if(tileSmooth)d.classList.add('smooth');
+    if(n!==null){
+      d.textContent=n;
+      d.style.fontSize = Math.floor(tileSize*fontMultiplier)+'px';
+      d.onclick=()=>move(i);
+    }
+    } else d.classList.add("empty");
+    boardEl.appendChild(d);
+  });
+}
+
+// 移動
+function move(i){
+  if(getMoves(emptyIndex).includes(i)){
+    [board[emptyIndex],board[i]]=[board[i],board[emptyIndex]];
+    emptyIndex=i;
+    moveCount++;
+    moveCountDisplay();
+    render();
+    if(clearCheck())setTimeout(clearGame,100);
+  }
+// スワイプ操作対応
+let startX, startY;
+function enableSwipe(){
+  const boardEl=document.getElementById("board");
+  boardEl.addEventListener('touchstart', e=>{
+    const t=e.touches[0];
+    startX=t.clientX;
+    startY=t.clientY;
+  });
+  boardEl.addEventListener('touchend', e=>{
+    const t=e.changedTouches[0];
+    const dx=t.clientX-startX;
+    const dy=t.clientY-startY;
+    if(Math.abs(dx)>Math.abs(dy)){
+      if(dx>20) swipe('right');
+      else if(dx<-20) swipe('left');
+    } else {
+      if(dy>20) swipe('down');
+      else if(dy<-20) swipe('up');
+    }
+  });
+}
+
+function swipe(dir){
+  const r=Math.floor(emptyIndex/size);
+  const c=emptyIndex%size;
+  let target=null;
+  if(dir==='up'&&r<size-1) target=emptyIndex+size;
+  else if(dir==='down'&&r>0) target=emptyIndex-size;
+  else if(dir==='left'&&c<size-1) target=emptyIndex+1;
+  else if(dir==='right'&&c>0) target=emptyIndex-1;
+  if(target!==null) move(target);
+}
+
+// 移動可能
+@@ -265,4 +332,4 @@ <h1>詳細</h1>
+</script>
+
+</body>
+</html>
+</html>
