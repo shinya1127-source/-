@@ -93,7 +93,6 @@ button:hover{background:#357ae8;}
 <h1>詳細</h1>
 <button onclick="showDetail('stats')">統計</button>
 <button onclick="showDetail('ranking')">ランキング</button>
-<button onclick="showDetail('settings')">設定</button>
 <div id="detailContent"></div>
 <br>
 <button onclick="showScreen('homeScreen')">ホームに戻る</button>
@@ -102,7 +101,6 @@ button:hover{background:#357ae8;}
 <script>
 let size=4, board=[], emptyIndex, moveCount=0;
 let tileSmooth=true;
-let tileFontSize='medium';
 
 // 画面切り替え
 function showScreen(id){
@@ -136,36 +134,7 @@ function showDetail(type){
       podium.appendChild(d);
     });
     content.appendChild(podium);
-  } else if(type==='settings'){
-    const div=document.createElement('div');
-    div.innerHTML=`
-      <h3>設定</h3>
-      <label>タイルの動きの滑らかさ:
-        <select id="smoothSelect" onchange="updateSmooth()">
-          <option value="true" ${tileSmooth?'selected':''}>滑らか</option>
-          <option value="false" ${!tileSmooth?'selected':''}>普通</option>
-        </select>
-      </label><br><br>
-      <label>タイルの数字サイズ:
-        <select id="fontSizeSelect" onchange="updateFontSize()">
-          <option value="small" ${tileFontSize==='small'?'selected':''}>小</option>
-          <option value="medium" ${tileFontSize==='medium'?'selected':''}>標準</option>
-          <option value="large" ${tileFontSize==='large'?'selected':''}>大</option>
-        </select>
-      </label>
-    `;
-    content.appendChild(div);
   }
-}
-
-// 設定更新
-function updateSmooth(){
-  tileSmooth = document.getElementById('smoothSelect').value==='true';
-  render();
-}
-function updateFontSize(){
-  tileFontSize = document.getElementById('fontSizeSelect').value;
-  render();
 }
 
 // ゲーム開始
@@ -204,20 +173,16 @@ function render(){
     d.className="tile";
     if(tileSmooth) d.classList.add('smooth');
 
-    // タイルのサイズは固定
+    // タイルサイズ
     const tileSize = maxSize/size;
     d.style.width = tileSize + 'px';
     d.style.height = tileSize + 'px';
 
-    // 文字サイズだけ変更
-    let fontSize;
-    if(tileFontSize==='small') fontSize = 20;
-    else if(tileFontSize==='medium') fontSize = 32;
-    else fontSize = 48;
-
+    // 文字サイズはタイルに合わせて最大化
     if(n!==null){
       d.textContent=n;
-      d.style.fontSize = fontSize + 'px';
+      const fontSize = tileSize*0.6; // タイルの60%程度
+      d.style.fontSize = fontSize+'px';
       d.onclick=()=>move(i);
     } else d.classList.add("empty");
 
