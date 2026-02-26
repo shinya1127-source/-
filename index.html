@@ -33,8 +33,11 @@ button:hover{background:#357ae8;}
 .tile{
   aspect-ratio:1/1;
   background:linear-gradient(145deg,#6fb1fc,#4364f7);
-  color:white;font-weight:bold;display:flex;
-  justify-content:center;align-items:center;border-radius:10px;
+  color:white;font-weight:bold;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  border-radius:10px;
   font-size:clamp(10px,2.5vw,28px);
   transition: transform 0.2s;
 }
@@ -92,18 +95,20 @@ button:hover{background:#357ae8;}
 <!-- 詳細画面 -->
 <div id="detailScreen" class="screen">
 <h1>詳細</h1>
-<button onclick="showDetail('stats')">統計</button>
-<button onclick="showDetail('ranking')">ランキング</button>
-<button onclick="showDetail('settings')">設定</button>
-<div id="detailContent"></div>
+<div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+  <button onclick="showDetail('stats')">統計</button>
+  <button onclick="showDetail('ranking')">ランキング</button>
+  <button onclick="showDetail('settings')">設定</button>
+</div>
+<div id="detailContent" style="margin-top:20px;"></div>
 <br>
 <button onclick="showScreen('homeScreen')">ホームに戻る</button>
 </div>
 
 <script>
 let size=4, board=[], emptyIndex, moveCount=0;
-let tileSmooth=true;
-let tileFontSize='medium';
+let tileSmooth=true; // タイルの動き滑らか
+let tileFontSize='medium'; // タイルの数字サイズ
 
 // 画面切り替え
 function showScreen(id){
@@ -111,7 +116,7 @@ function showScreen(id){
   document.getElementById(id).style.display='block';
 }
 
-// 詳細画面の内容切替
+// 詳細画面切替
 function showDetail(type){
   const content=document.getElementById('detailContent');
   content.innerHTML='';
@@ -164,7 +169,6 @@ function updateSmooth(){
   tileSmooth = document.getElementById('smoothSelect').value==='true';
   render();
 }
-
 function updateFontSize(){
   tileFontSize = document.getElementById('fontSizeSelect').value;
   render();
@@ -174,10 +178,11 @@ function updateFontSize(){
 function startGame(){
   size=parseInt(document.getElementById('sizeSelect').value);
   board=[];
-  for(let i=1;i<size*size;i++)board.push(i);
+  for(let i=1;i<size*size;i++) board.push(i);
   board.push(null);
   emptyIndex=board.length-1;
 
+  // シャッフル
   for(let i=0;i<size*size*20;i++){
     let moves=getMoves(emptyIndex);
     let r=moves[Math.floor(Math.random()*moves.length)];
@@ -197,19 +202,19 @@ function startGame(){
 // レンダリング
 function render(){
   const boardEl=document.getElementById("board");
-  boardEl.innerHTML="";
+  boardEl.innerHTML='';
   boardEl.style.gridTemplateColumns=`repeat(${size},1fr)`;
   const maxSize=Math.min(innerWidth*0.9,innerHeight*0.6);
   boardEl.style.width=maxSize+"px";
   boardEl.style.height=maxSize+"px";
 
-  let fontMultiplier = tileFontSize==='small'?0.5: tileFontSize==='medium'?0.8 : 1.2;
+  let fontMultiplier = tileFontSize==='small'?0.5 : tileFontSize==='medium'?0.8 : 1.2;
   const tileSize = maxSize/size;
 
   board.forEach((n,i)=>{
     const d=document.createElement("div");
     d.className="tile";
-    if(tileSmooth)d.classList.add('smooth');
+    if(tileSmooth) d.classList.add('smooth');
     if(n!==null){
       d.textContent=n;
       d.style.fontSize = Math.floor(tileSize*fontMultiplier)+'px';
@@ -219,8 +224,8 @@ function render(){
   });
 }
 
-// スワイプ操作対応
-let startX, startY;
+// スワイプ対応
+let startX,startY;
 function enableSwipe(){
   const boardEl=document.getElementById("board");
   boardEl.addEventListener('touchstart', e=>{
@@ -241,7 +246,6 @@ function enableSwipe(){
     }
   });
 }
-
 function swipe(dir){
   const r=Math.floor(emptyIndex/size);
   const c=emptyIndex%size;
@@ -258,10 +262,10 @@ function getMoves(i){
   const arr=[];
   const r=Math.floor(i/size);
   const c=i%size;
-  if(r>0)arr.push(i-size);
-  if(r<size-1)arr.push(i+size);
-  if(c>0)arr.push(i-1);
-  if(c<size-1)arr.push(i+1);
+  if(r>0) arr.push(i-size);
+  if(r<size-1) arr.push(i+size);
+  if(c>0) arr.push(i-1);
+  if(c<size-1) arr.push(i+1);
   return arr;
 }
 
@@ -272,14 +276,14 @@ function moveCountDisplay(){
 
 // クリア判定
 function clearCheck(){
-  for(let i=0;i<board.length-1;i++)if(board[i]!==i+1)return false;
+  for(let i=0;i<board.length-1;i++) if(board[i]!==i+1) return false;
   return true;
 }
 
 // クリア処理
 function clearGame(){
   let name=prompt("クリア！名前を入力");
-  if(name===null)return;
+  if(name===null) return;
   saveScore(name||"名無し");
   alert("クリア！手数: "+moveCount+"回");
   render();
@@ -294,37 +298,37 @@ function saveScore(name){
   let newBest=data[0].moves===moveCount;
   data=data.slice(0,5);
   localStorage.setItem(key,JSON.stringify(data));
-  if(newBest)document.getElementById("newRecord").innerText="🎉 NEW RECORD!";
+  if(newBest) document.getElementById("newRecord").innerText="🎉 NEW RECORD!";
   else document.getElementById("newRecord").innerText="";
   loadRanking(moveCount);
 }
 
-// ゲーム画面ランキング表示
+// ランキング表示
 function loadRanking(latest=null){
   const key="ranking_"+size;
   let data=JSON.parse(localStorage.getItem(key))||[];
   const r=document.getElementById("ranking");
   r.innerHTML="";
-  if(data.length===0)return;
+  if(data.length===0) return;
   const podium=document.createElement("div");
   podium.className="podium";
   [1,0,2].forEach(i=>{
-    if(!data[i])return;
+    if(!data[i]) return;
     const d=document.createElement("div");
     d.className="podiumItem "+(i===0?"first":i===1?"second":"third");
     d.innerHTML=`${["🥇","🥈","🥉"][i]}<br>${data[i].name}<br>${data[i].moves}`;
-    if(latest===data[i].moves)d.classList.add("highlight");
+    if(latest===data[i].moves) d.classList.add("highlight");
     podium.appendChild(d);
   });
   r.appendChild(podium);
 }
 
-// 統計
+// 統計更新
 function updateStats(type){
   let s=JSON.parse(localStorage.getItem("stats"))||{play:0,clear:0,update:0,totalMoves:0,totalClear:0};
-  if(type==="play")s.play++;
-  if(type==="clear"){s.clear++;s.totalMoves+=moveCount;s.totalClear++;}
-  if(type==="update")s.update++;
+  if(type==="play") s.play++;
+  if(type==="clear"){ s.clear++; s.totalMoves+=moveCount; s.totalClear++; }
+  if(type==="update") s.update++;
   localStorage.setItem("stats",JSON.stringify(s));
 }
 
