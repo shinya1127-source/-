@@ -7,39 +7,19 @@
 <style>
 body{margin:0;font-family:sans-serif;background:#f4f6f9;text-align:center;}
 button{
-  padding:15px 0;
-  font-size:24px;
-  width:60%;
-  margin:10px auto;
-  display:block;
-  border:none;
-  border-radius:10px;
-  background:#4a90e2;
-  color:white;
-  cursor:pointer;
+  padding:15px 0;font-size:24px;width:60%;margin:10px auto;display:block;
+  border:none;border-radius:10px;background:#4a90e2;color:white;cursor:pointer;
 }
 button:hover{background:#357ae8;}
 #sizeSelect{
-  width:60%;
-  font-size:24px;
-  padding:10px;
-  margin:10px auto 20px auto;
-  display:block;
-  border-radius:10px;
-  border:1px solid #ccc;
-  text-align:center;
+  width:60%;font-size:24px;padding:10px;margin:10px auto 20px auto;
+  display:block;border-radius:10px;border:1px solid #ccc;text-align:center;
 }
 #board{display:grid;margin:10px auto;gap:4px; touch-action: none;}
 .tile{
-  aspect-ratio:1/1;
   background:linear-gradient(145deg,#6fb1fc,#4364f7);
-  color:white;font-weight:bold;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  border-radius:10px;
-  font-size:clamp(10px,2.5vw,28px);
-  transition: transform 0.2s;
+  color:white;font-weight:bold;display:flex;justify-content:center;align-items:center;
+  border-radius:10px;transition: transform 0.2s; user-select:none;
 }
 .tile.smooth{transition: transform 0.3s ease;}
 .empty{background:transparent;}
@@ -95,20 +75,18 @@ button:hover{background:#357ae8;}
 <!-- 詳細画面 -->
 <div id="detailScreen" class="screen">
 <h1>詳細</h1>
-<div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
-  <button onclick="showDetail('stats')">統計</button>
-  <button onclick="showDetail('ranking')">ランキング</button>
-  <button onclick="showDetail('settings')">設定</button>
-</div>
-<div id="detailContent" style="margin-top:20px;"></div>
+<button onclick="showDetail('stats')">統計</button>
+<button onclick="showDetail('ranking')">ランキング</button>
+<button onclick="showDetail('settings')">設定</button>
+<div id="detailContent"></div>
 <br>
 <button onclick="showScreen('homeScreen')">ホームに戻る</button>
 </div>
 
 <script>
 let size=4, board=[], emptyIndex, moveCount=0;
-let tileSmooth=true; // タイルの動き滑らか
-let tileFontSize='medium'; // タイルの数字サイズ
+let tileSmooth=true;
+let tileFontSize='medium';
 
 // 画面切り替え
 function showScreen(id){
@@ -116,18 +94,19 @@ function showScreen(id){
   document.getElementById(id).style.display='block';
 }
 
-// 詳細画面切替
+// 詳細画面の内容切替
 function showDetail(type){
   const content=document.getElementById('detailContent');
   content.innerHTML='';
   if(type==='stats'){
     const s=JSON.parse(localStorage.getItem("stats"))||{};
     let avg=s.totalClear?Math.floor(s.totalMoves/s.totalClear):0;
-    content.innerHTML=
-      `総プレイ: ${s.play||0}<br>
-       総クリア: ${s.clear||0}<br>
-       ベスト更新: ${s.update||0}<br>
-       平均手数: ${avg}`;
+    content.innerHTML=`
+      総プレイ: ${s.play||0}<br>
+      総クリア: ${s.clear||0}<br>
+      ベスト更新: ${s.update||0}<br>
+      平均手数: ${avg}
+    `;
   } else if(type==='ranking'){
     const key="ranking_"+size;
     let data=JSON.parse(localStorage.getItem(key))||[];
@@ -178,22 +157,19 @@ function updateFontSize(){
 function startGame(){
   size=parseInt(document.getElementById('sizeSelect').value);
   board=[];
-  for(let i=1;i<size*size;i++) board.push(i);
+  for(let i=1;i<size*size;i++)board.push(i);
   board.push(null);
   emptyIndex=board.length-1;
-
-  // シャッフル
   for(let i=0;i<size*size*20;i++){
     let moves=getMoves(emptyIndex);
     let r=moves[Math.floor(Math.random()*moves.length)];
     [board[emptyIndex],board[r]]=[board[r],board[emptyIndex]];
     emptyIndex=r;
   }
-
   moveCount=0;
   moveCountDisplay();
   render();
-  enableSwipe(); // スワイプ有効化
+  enableSwipe();
   showScreen('gameScreen');
   updateStats("play");
   loadRanking();
@@ -208,24 +184,26 @@ function render(){
   boardEl.style.width=maxSize+"px";
   boardEl.style.height=maxSize+"px";
 
-  let fontMultiplier = tileFontSize==='small'?0.5 : tileFontSize==='medium'?0.8 : 1.2;
-  const tileSize = maxSize/size;
+  const tileSize = maxSize/size; // タイルの大きさ固定
+  let fontMultiplier = tileFontSize==='small'?0.5:tileFontSize==='medium'?0.8:1.2;
 
   board.forEach((n,i)=>{
     const d=document.createElement("div");
     d.className="tile";
     if(tileSmooth) d.classList.add('smooth');
+    d.style.width = tileSize + "px";
+    d.style.height = tileSize + "px";
     if(n!==null){
       d.textContent=n;
-      d.style.fontSize = Math.floor(tileSize*fontMultiplier)+'px';
+      d.style.fontSize = Math.floor(tileSize * fontMultiplier)+'px'; // 文字サイズだけ調整
       d.onclick=()=>move(i);
     } else d.classList.add("empty");
     boardEl.appendChild(d);
   });
 }
 
-// スワイプ対応
-let startX,startY;
+// スワイプ操作対応
+let startX, startY;
 function enableSwipe(){
   const boardEl=document.getElementById("board");
   boardEl.addEventListener('touchstart', e=>{
@@ -259,9 +237,7 @@ function swipe(dir){
 
 // 移動可能
 function getMoves(i){
-  const arr=[];
-  const r=Math.floor(i/size);
-  const c=i%size;
+  const arr=[]; const r=Math.floor(i/size); const c=i%size;
   if(r>0) arr.push(i-size);
   if(r<size-1) arr.push(i+size);
   if(c>0) arr.push(i-1);
@@ -270,20 +246,15 @@ function getMoves(i){
 }
 
 // 手数表示
-function moveCountDisplay(){
-  document.getElementById("moveCount").innerText="手数:"+moveCount;
-}
+function moveCountDisplay(){ document.getElementById("moveCount").innerText="手数:"+moveCount; }
 
 // クリア判定
-function clearCheck(){
-  for(let i=0;i<board.length-1;i++) if(board[i]!==i+1) return false;
-  return true;
-}
+function clearCheck(){ for(let i=0;i<board.length-1;i++) if(board[i]!==i+1) return false; return true; }
 
 // クリア処理
 function clearGame(){
   let name=prompt("クリア！名前を入力");
-  if(name===null) return;
+  if(name===null)return;
   saveScore(name||"名無し");
   alert("クリア！手数: "+moveCount+"回");
   render();
@@ -323,7 +294,7 @@ function loadRanking(latest=null){
   r.appendChild(podium);
 }
 
-// 統計更新
+// 統計
 function updateStats(type){
   let s=JSON.parse(localStorage.getItem("stats"))||{play:0,clear:0,update:0,totalMoves:0,totalClear:0};
   if(type==="play") s.play++;
