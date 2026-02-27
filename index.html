@@ -48,6 +48,8 @@ button:hover{background:#357ae8;}
 .highlight{box-shadow:0 0 15px 5px #00ffcc;}
 #stats{margin-top:20px;background:white;padding:10px;border-radius:12px;max-width:400px;margin-left:auto;margin-right:auto;}
 .screen{display:none;}
+table{border-collapse:collapse;}
+td{border:1px solid #ccc;text-align:center;}
 </style>
 </head>
 <body>
@@ -108,7 +110,7 @@ function showScreen(id){
   document.getElementById(id).style.display='block';
 }
 
-// 詳細画面の内容切替
+// 詳細画面
 function showDetail(type){
   const content=document.getElementById('detailContent');
   content.innerHTML='';
@@ -121,19 +123,57 @@ function showDetail(type){
        ベスト更新: ${s.update||0}<br>
        平均手数: ${avg}`;
   } else if(type==='ranking'){
-    const key="ranking_"+size;
-    let data=JSON.parse(localStorage.getItem(key))||[];
-    if(data.length===0){content.innerText="ランキングはまだありません"; return;}
-    const podium=document.createElement("div");
-    podium.className="podium";
-    [1,0,2].forEach(i=>{
-      if(!data[i])return;
-      const d=document.createElement("div");
-      d.className="podiumItem "+(i===0?"first":i===1?"second":"third");
-      d.innerHTML=`${["🥇","🥈","🥉"][i]}<br>${data[i].name}<br>${data[i].moves}`;
-      podium.appendChild(d);
-    });
-    content.appendChild(podium);
+    // サイズ選択
+    const sizeSelect = document.createElement("select");
+    for(let sz=3; sz<=10; sz++){
+      const opt = document.createElement("option");
+      opt.value = sz;
+      opt.text = sz+"×"+sz;
+      if(sz===size) opt.selected=true;
+      sizeSelect.appendChild(opt);
+    }
+    sizeSelect.onchange = () => displayRanking(parseInt(sizeSelect.value));
+    content.appendChild(sizeSelect);
+
+    // ランキング表示ラッパー
+    const rankingWrapper = document.createElement("div");
+    rankingWrapper.id="rankingListWrapper";
+    rankingWrapper.style.marginTop="10px";
+    rankingWrapper.style.overflowX="auto";
+    rankingWrapper.style.maxWidth="100%";
+    content.appendChild(rankingWrapper);
+
+    displayRanking(size);
+
+    function displayRanking(selSize){
+      const key="ranking_"+selSize;
+      let data=JSON.parse(localStorage.getItem(key))||[];
+      data.sort((a,b)=>a.moves-b.moves);
+      const r=document.getElementById("rankingListWrapper");
+      r.innerHTML="";
+      if(data.length===0){ r.innerText="ランキングはまだありません"; return; }
+      const table=document.createElement("table");
+      table.style.margin="0 auto";
+      table.style.minWidth="300px";
+      data.forEach((d,i)=>{
+        const row=document.createElement("tr");
+        const rankCell=document.createElement("td");
+        rankCell.innerText=i+1;
+        rankCell.style.padding="4px 8px";
+        rankCell.style.fontWeight="bold";
+        const nameCell=document.createElement("td");
+        nameCell.innerText=d.name;
+        nameCell.style.padding="4px 8px";
+        const movesCell=document.createElement("td");
+        movesCell.innerText=d.moves;
+        movesCell.style.padding="4px 8px";
+        row.appendChild(rankCell);
+        row.appendChild(nameCell);
+        row.appendChild(movesCell);
+        table.appendChild(row);
+      });
+      r.appendChild(table);
+    }
   }
 }
 
@@ -145,7 +185,6 @@ function startGame(){
   board.push(null);
   emptyIndex=board.length-1;
 
-  // シャッフル
   for(let i=0;i<size*size*20;i++){
     let moves=getMoves(emptyIndex);
     let r=moves[Math.floor(Math.random()*moves.length)];
@@ -171,7 +210,7 @@ function render(){
   boardEl.style.height=maxSize+"px";
 
   const tileSize = maxSize/size;
-  const fontSize = tileSize * 0.6; // タイルの60%を文字サイズに
+  const fontSize = tileSize * 0.6; // タイルに最大限フィット
 
   board.forEach((n,i)=>{
     const d=document.createElement("div");
@@ -179,7 +218,7 @@ function render(){
     if(n===null) d.classList.add("empty");
     else{
       d.textContent=n;
-      d.style.fontSize = fontSize+"px";
+      d.style.fontSize=fontSize+"px";
       d.onclick=()=>move(i);
     }
     boardEl.appendChild(d);
@@ -226,7 +265,7 @@ function clearGame(){
   let name=prompt("クリア！名前を入力");
   if(name===null) return;
   saveScore(name||"名無し");
-  updateStats("clear"); // ここで統計を更新
+  updateStats("clear");
   alert("クリア！手数: "+moveCount+"回");
   render();
 }
@@ -238,31 +277,43 @@ function saveScore(name){
   data.push({name,moves:moveCount});
   data.sort((a,b)=>a.moves-b.moves);
   let newBest = data[0].moves===moveCount;
-  data = data.slice(0,5);
+  data=data.slice(0,50); // 上位50件保持
   localStorage.setItem(key,JSON.stringify(data));
   if(newBest) document.getElementById("newRecord").innerText="🎉 NEW RECORD!";
   else document.getElementById("newRecord").innerText="";
   loadRanking(moveCount);
 }
 
-// ランキング表示
+// ゲーム画面ランキング表示
 function loadRanking(latest=null){
   const key="ranking_"+size;
   let data=JSON.parse(localStorage.getItem(key))||[];
   const r=document.getElementById("ranking");
   r.innerHTML="";
   if(data.length===0) return;
-  const podium=document.createElement("div");
-  podium.className="podium";
-  [1,0,2].forEach(i=>{
-    if(!data[i]) return;
-    const d=document.createElement("div");
-    d.className="podiumItem "+(i===0?"first":i===1?"second":"third");
-    d.innerHTML=`${["🥇","🥈","🥉"][i]}<br>${data[i].name}<br>${data[i].moves}`;
-    if(latest===data[i].moves) d.classList.add("highlight");
-    podium.appendChild(d);
+  const table=document.createElement("table");
+  table.style.margin="0 auto";
+  table.style.minWidth="300px";
+  data.sort((a,b)=>a.moves-b.moves);
+  data.forEach((d,i)=>{
+    const row=document.createElement("tr");
+    const rankCell=document.createElement("td");
+    rankCell.innerText=i+1;
+    rankCell.style.padding="4px 8px";
+    rankCell.style.fontWeight="bold";
+    const nameCell=document.createElement("td");
+    nameCell.innerText=d.name;
+    nameCell.style.padding="4px 8px";
+    const movesCell=document.createElement("td");
+    movesCell.innerText=d.moves;
+    movesCell.style.padding="4px 8px";
+    if(latest===d.moves) row.style.background="#d4f7e2"; // 最新スコアハイライト
+    row.appendChild(rankCell);
+    row.appendChild(nameCell);
+    row.appendChild(movesCell);
+    table.appendChild(row);
   });
-  r.appendChild(podium);
+  r.appendChild(table);
 }
 
 // 統計
